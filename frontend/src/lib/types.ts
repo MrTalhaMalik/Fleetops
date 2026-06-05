@@ -99,6 +99,18 @@ export type ShiftLogGroup = {
   totalMs: number;
 };
 
+export type Car = {
+  id: string;
+  name: string;
+  model: string;
+  plateNumber: string;
+  assignedDriverId: string | null;
+  assignedDriverName: string | null;
+  assignmentStart: string | null;
+  assignmentEnd: string | null;
+  createdAt?: string;
+};
+
 export type DashboardStats = {
   totalDrivers: number;
   pendingDrivers: number;

@@ -70,9 +70,29 @@ model Driver {
 
   invitations Invitation[]
   shifts      Shift[]
+  cars        Car[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Car {
+  id          String  @id @default(cuid())
+  name        String
+  model       String  @default("")
+  plateNumber String  @unique
+
+  assignedDriverId String?
+  assignedDriver   Driver? @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
+
+  // Plain strings so they round-trip with <input type="date"> in the UI.
+  assignmentStart String?
+  assignmentEnd   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assignedDriverId])
 }
 
 model Event {

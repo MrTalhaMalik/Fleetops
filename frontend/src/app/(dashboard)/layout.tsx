@@ -8,7 +8,7 @@ import type { Role } from "@/lib/types";
 
 // Whitelist of which role may visit which top-level route. Anything not listed
 // is treated as shared (both roles allowed).
-const adminOnly = ["/drivers", "/live-map"];
+const adminOnly = ["/drivers", "/live-map", "/cars"];
 const driverOnly = ["/profile", "/shifts"];
 
 function isAllowed(pathname: string, role: Role) {

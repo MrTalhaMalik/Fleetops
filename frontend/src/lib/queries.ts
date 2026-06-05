@@ -3,6 +3,7 @@ import { api } from "./api";
 import type {
   AlertItem,
   AlertRecipientType,
+  Car,
   DashboardStats,
   Driver,
   EventItem,
@@ -296,6 +297,48 @@ export function useDeleteAlert() {
   return useMutation({
     mutationFn: (id: string) => api(`/alerts/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
+  });
+}
+
+// ---------- Cars
+export function useCars() {
+  return useQuery<Car[]>({
+    queryKey: ["cars"],
+    queryFn: () => api("/cars"),
+  });
+}
+
+export type CarInput = {
+  name: string;
+  model: string;
+  plateNumber: string;
+  assignedDriverId: string | null;
+  assignmentStart: string | null;
+  assignmentEnd: string | null;
+};
+
+export function useCreateCar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CarInput) => api<Car>("/cars", { method: "POST", body: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cars"] }),
+  });
+}
+
+export function useUpdateCar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: Partial<CarInput> }) =>
+      api<Car>(`/cars/${id}`, { method: "PATCH", body: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cars"] }),
+  });
+}
+
+export function useDeleteCar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/cars/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cars"] }),
   });
 }
 

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Calendar,
+  Car,
   Clock,
   LayoutDashboard,
   LogOut,
@@ -27,6 +28,7 @@ const adminNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Events", href: "/events", icon: Calendar },
   { label: "Drivers", href: "/drivers", icon: Users },
+  { label: "Cars", href: "/cars", icon: Car },
   { label: "Live Map", href: "/live-map", icon: Map },
   { label: "Alerts", href: "/alerts", icon: AlertTriangle },
 ];

@@ -10,6 +10,7 @@ import driverRoutes from "./routes/driver.routes.js";
 import eventRoutes from "./routes/event.routes.js";
 import alertRoutes from "./routes/alert.routes.js";
 import statsRoutes from "./routes/stats.routes.js";
+import carRoutes from "./routes/car.routes.js";
 import { startLocationWatchdog } from "./jobs/location-watchdog.js";
 
 const app = express();
@@ -30,6 +31,7 @@ app.use("/api/drivers", driverRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/cars", carRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found", path: req.originalUrl }));
 
