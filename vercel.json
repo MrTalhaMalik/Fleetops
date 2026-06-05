@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://your-backend-api.com/api/$1"
+      "dest": "https://fleetops-5u3v.onrender.com/api/$1"
     },
     {
       "src": "/(.*)",
