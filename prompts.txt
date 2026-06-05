@@ -1,0 +1,31 @@
+//prompt #Pehla
+//when creating a new event, ask for start date and end date. dont ask for time at all.
+
+//prompt # doosra
+//when creating a new event, and a button to send invite to all drivers first come first serve places. and also when creating a new event ask for limit of drivers. once limit is reached, drivers cannot be added, and automatically send notification that registration closed.
+
+//prompt #1
+//what i want you to do next is, when a driver starts their shift make sure their location is enabled, and then show their location on map. if the driver turns off their location after closing the app, make sure to turn off their shift autmatically.
+
+//Prompt #2
+//When a driver signs up ask them to upload a picture their QID and Qatar License.
+
+
+//Prompt #3
+//INside an event, create a group chat with all drivers and admin. send notification on every message.
+
+
+//prompt #4
+//A driver can have multiple shifts. log all driver shifts, create a log page where each driver can see their hours per event. the start shift button will show up as long as they are in an event. they can have as many shifts as they want
+
+
+//Prompt #5
+//on the admins page in the live map section i cant see the live location of the driver and the map of where they are. instead i see a random map of somewhere, can you fix this so i can see a real map in real time?
+
+
+prompt #6
+mobile app ready to deploy
+What i want you to do now is make this a mobile app as well.
+
+prompt #7
+attach online database to i
