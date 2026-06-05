@@ -4,6 +4,7 @@ import type {
   AlertItem,
   AlertRecipientType,
   Car,
+  CarLogEntry,
   DashboardStats,
   Driver,
   EventItem,
@@ -308,11 +309,19 @@ export function useCars() {
   });
 }
 
+export function useCarLog() {
+  return useQuery<CarLogEntry[]>({
+    queryKey: ["cars", "log"],
+    queryFn: () => api("/cars/log"),
+  });
+}
+
 export type CarInput = {
   name: string;
   model: string;
   plateNumber: string;
   assignedDriverId: string | null;
+  assignedEventId: string | null;
   assignmentStart: string | null;
   assignmentEnd: string | null;
 };
@@ -321,7 +330,9 @@ export function useCreateCar() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CarInput) => api<Car>("/cars", { method: "POST", body: input }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cars"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cars"] });
+    },
   });
 }
 
@@ -330,7 +341,9 @@ export function useUpdateCar() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: Partial<CarInput> }) =>
       api<Car>(`/cars/${id}`, { method: "PATCH", body: input }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cars"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cars"] });
+    },
   });
 }
 

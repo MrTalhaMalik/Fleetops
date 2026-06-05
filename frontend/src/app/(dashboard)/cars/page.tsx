@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Car as CarIcon, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Car as CarIcon, History, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,8 @@ export default function CarsPage() {
         c.name.toLowerCase().includes(q) ||
         c.model.toLowerCase().includes(q) ||
         c.plateNumber.toLowerCase().includes(q) ||
-        (c.assignedDriverName ?? "").toLowerCase().includes(q),
+        (c.assignedDriverName ?? "").toLowerCase().includes(q) ||
+        (c.assignedEventTitle ?? "").toLowerCase().includes(q),
     );
   }, [cars, query]);
 
@@ -65,9 +67,16 @@ export default function CarsPage() {
             : `${cars.length} total · ${assigned} assigned · ${cars.length - assigned} available`
         }
         actions={
-          <Button size="md" onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" /> Add car
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/cars/log">
+              <Button size="md" variant="outline">
+                <History className="size-4" /> View log
+              </Button>
+            </Link>
+            <Button size="md" onClick={() => setFormOpen(true)}>
+              <Plus className="size-4" /> Add car
+            </Button>
+          </div>
         }
       />
 
@@ -117,6 +126,7 @@ export default function CarsPage() {
                   <th className="px-6 py-3 font-semibold">Model</th>
                   <th className="px-6 py-3 font-semibold">No. Plate</th>
                   <th className="px-6 py-3 font-semibold">Assigned to</th>
+                  <th className="px-6 py-3 font-semibold">Event</th>
                   <th className="px-6 py-3 font-semibold">Start</th>
                   <th className="px-6 py-3 font-semibold">End</th>
                   <th className="px-6 py-3 font-semibold sr-only">Actions</th>
@@ -144,6 +154,9 @@ export default function CarsPage() {
                       ) : (
                         <Badge tone="muted">Unassigned</Badge>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-muted">
+                      {c.assignedEventTitle ?? "—"}
                     </td>
                     <td className="px-6 py-4 text-muted">{formatDate(c.assignmentStart)}</td>
                     <td className="px-6 py-4 text-muted">{formatDate(c.assignmentEnd)}</td>

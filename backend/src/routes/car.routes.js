@@ -12,28 +12,87 @@ const carCreateSchema = z.object({
   model: z.string().trim().default(""),
   plateNumber: z.string().trim().min(1, "Plate number is required"),
   assignedDriverId: z.string().nullable().optional(),
+  assignedEventId: z.string().nullable().optional(),
   assignmentStart: z.string().nullable().optional(),
   assignmentEnd: z.string().nullable().optional(),
 });
 
 const carUpdateSchema = carCreateSchema.partial();
 
-// Strip the nested driver record to a flat { id, name } so the frontend can render
-// "Assigned to" without learning the full Driver shape.
+// Strip the nested driver/event records to flat name strings so the frontend
+// can render the table without learning the full Driver/Event shapes.
 function shape(car) {
-  const { assignedDriver, ...rest } = car;
+  const { assignedDriver, assignedEvent, ...rest } = car;
   return {
     ...rest,
     assignedDriverName: assignedDriver?.name ?? null,
+    assignedEventTitle: assignedEvent?.title ?? null,
   };
+}
+
+// Flatten a CarAssignment + joined relations into the log row shape the
+// frontend consumes.
+function shapeLog(row) {
+  return {
+    id: row.id,
+    carId: row.carId,
+    carName: row.car?.name ?? null,
+    carModel: row.car?.model ?? null,
+    carPlate: row.car?.plateNumber ?? null,
+    driverId: row.driverId,
+    driverName: row.driver?.name ?? null,
+    eventId: row.eventId,
+    eventTitle: row.event?.title ?? null,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    createdAt: row.createdAt,
+  };
+}
+
+// Append a history row when the car has any assignment data. Called after
+// every successful create/update; uses post-write values so partial PATCH
+// payloads still snapshot a consistent state.
+async function snapshotAssignment(car) {
+  if (
+    !car.assignedDriverId &&
+    !car.assignedEventId &&
+    !car.assignmentStart &&
+    !car.assignmentEnd
+  ) {
+    return;
+  }
+  await prisma.carAssignment.create({
+    data: {
+      carId: car.id,
+      driverId: car.assignedDriverId || null,
+      eventId: car.assignedEventId || null,
+      startDate: car.assignmentStart || null,
+      endDate: car.assignmentEnd || null,
+    },
+  });
 }
 
 router.get("/", async (_req, res) => {
   const cars = await prisma.car.findMany({
-    include: { assignedDriver: { select: { id: true, name: true } } },
+    include: {
+      assignedDriver: { select: { id: true, name: true } },
+      assignedEvent: { select: { id: true, title: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
   res.json(cars.map(shape));
+});
+
+router.get("/log", async (_req, res) => {
+  const rows = await prisma.carAssignment.findMany({
+    include: {
+      car: { select: { name: true, model: true, plateNumber: true } },
+      driver: { select: { name: true } },
+      event: { select: { title: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(rows.map(shapeLog));
 });
 
 router.post("/", async (req, res) => {
@@ -43,6 +102,10 @@ router.post("/", async (req, res) => {
     const driver = await prisma.driver.findUnique({ where: { id: data.assignedDriverId } });
     if (!driver) return res.status(400).json({ error: "Assigned driver not found" });
   }
+  if (data.assignedEventId) {
+    const event = await prisma.event.findUnique({ where: { id: data.assignedEventId } });
+    if (!event) return res.status(400).json({ error: "Assigned event not found" });
+  }
 
   try {
     const car = await prisma.car.create({
@@ -51,11 +114,16 @@ router.post("/", async (req, res) => {
         model: data.model,
         plateNumber: data.plateNumber,
         assignedDriverId: data.assignedDriverId || null,
+        assignedEventId: data.assignedEventId || null,
         assignmentStart: data.assignmentStart || null,
         assignmentEnd: data.assignmentEnd || null,
       },
-      include: { assignedDriver: { select: { id: true, name: true } } },
+      include: {
+        assignedDriver: { select: { id: true, name: true } },
+        assignedEvent: { select: { id: true, title: true } },
+      },
     });
+    await snapshotAssignment(car);
     res.status(201).json(shape(car));
   } catch (err) {
     if (err.code === "P2002") {
@@ -72,6 +140,19 @@ router.patch("/:id", async (req, res) => {
     const driver = await prisma.driver.findUnique({ where: { id: data.assignedDriverId } });
     if (!driver) return res.status(400).json({ error: "Assigned driver not found" });
   }
+  if (data.assignedEventId) {
+    const event = await prisma.event.findUnique({ where: { id: data.assignedEventId } });
+    if (!event) return res.status(400).json({ error: "Assigned event not found" });
+  }
+
+  // Decide whether this PATCH touches assignment fields. If it does, snapshot
+  // a new log row after the write. A name/model/plate-only edit does NOT
+  // append to the log — only assignment changes do.
+  const touchesAssignment =
+    data.assignedDriverId !== undefined ||
+    data.assignedEventId !== undefined ||
+    data.assignmentStart !== undefined ||
+    data.assignmentEnd !== undefined;
 
   try {
     const car = await prisma.car.update({
@@ -83,6 +164,9 @@ router.patch("/:id", async (req, res) => {
         ...(data.assignedDriverId !== undefined && {
           assignedDriverId: data.assignedDriverId || null,
         }),
+        ...(data.assignedEventId !== undefined && {
+          assignedEventId: data.assignedEventId || null,
+        }),
         ...(data.assignmentStart !== undefined && {
           assignmentStart: data.assignmentStart || null,
         }),
@@ -90,8 +174,12 @@ router.patch("/:id", async (req, res) => {
           assignmentEnd: data.assignmentEnd || null,
         }),
       },
-      include: { assignedDriver: { select: { id: true, name: true } } },
+      include: {
+        assignedDriver: { select: { id: true, name: true } },
+        assignedEvent: { select: { id: true, title: true } },
+      },
     });
+    if (touchesAssignment) await snapshotAssignment(car);
     res.json(shape(car));
   } catch (err) {
     if (err.code === "P2025") return res.status(404).json({ error: "Car not found" });

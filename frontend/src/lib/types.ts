@@ -106,9 +106,26 @@ export type Car = {
   plateNumber: string;
   assignedDriverId: string | null;
   assignedDriverName: string | null;
+  assignedEventId: string | null;
+  assignedEventTitle: string | null;
   assignmentStart: string | null;
   assignmentEnd: string | null;
   createdAt?: string;
+};
+
+export type CarLogEntry = {
+  id: string;
+  carId: string;
+  carName: string | null;
+  carModel: string | null;
+  carPlate: string | null;
+  driverId: string | null;
+  driverName: string | null;
+  eventId: string | null;
+  eventTitle: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
 };
 
 export type DashboardStats = {

@@ -68,9 +68,10 @@ model Driver {
   qidImage     String? @db.Text
   licenseImage String? @db.Text
 
-  invitations Invitation[]
-  shifts      Shift[]
-  cars        Car[]
+  invitations    Invitation[]
+  shifts         Shift[]
+  cars           Car[]
+  carAssignments CarAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -85,14 +86,40 @@ model Car {
   assignedDriverId String?
   assignedDriver   Driver? @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
 
+  assignedEventId String?
+  assignedEvent   Event?  @relation("CarAssignedEvent", fields: [assignedEventId], references: [id], onDelete: SetNull)
+
   // Plain strings so they round-trip with <input type="date"> in the UI.
   assignmentStart String?
   assignmentEnd   String?
+
+  assignments CarAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([assignedDriverId])
+  @@index([assignedEventId])
+}
+
+// Append-only history of car-to-driver-to-event assignments. A new row is
+// inserted by car.routes.js whenever a Car's assignment fields change.
+model CarAssignment {
+  id        String   @id @default(cuid())
+  carId     String
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  driverId  String?
+  driver    Driver?  @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  startDate String?
+  endDate   String?
+  createdAt DateTime @default(now())
+
+  @@index([carId])
+  @@index([driverId])
+  @@index([eventId])
+  @@index([createdAt])
 }
 
 model Event {
@@ -110,6 +137,8 @@ model Event {
   messages       Message[]
   assignedDrivers Driver[] @relation("DriverAssignedEvent")
   alerts         Alert[]   @relation("EventAlerts")
+  cars           Car[]            @relation("CarAssignedEvent")
+  carAssignments CarAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -6,7 +6,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCreateCar, useDrivers, useUpdateCar } from "@/lib/queries";
+import { useCreateCar, useDrivers, useEvents, useUpdateCar } from "@/lib/queries";
 import type { Car } from "@/lib/types";
 
 type Props = {
@@ -20,11 +20,13 @@ export function CarFormModal({ open, car, onClose }: Props) {
   const create = useCreateCar();
   const update = useUpdateCar();
   const { data: drivers = [] } = useDrivers();
+  const { data: events = [] } = useEvents();
 
   const [name, setName] = useState("");
   const [model, setModel] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
   const [assignedDriverId, setAssignedDriverId] = useState("");
+  const [assignedEventId, setAssignedEventId] = useState("");
   const [assignmentStart, setAssignmentStart] = useState("");
   const [assignmentEnd, setAssignmentEnd] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,6 +37,7 @@ export function CarFormModal({ open, car, onClose }: Props) {
     setModel(car?.model ?? "");
     setPlateNumber(car?.plateNumber ?? "");
     setAssignedDriverId(car?.assignedDriverId ?? "");
+    setAssignedEventId(car?.assignedEventId ?? "");
     setAssignmentStart(car?.assignmentStart ?? "");
     setAssignmentEnd(car?.assignmentEnd ?? "");
     setErrors({});
@@ -60,6 +63,7 @@ export function CarFormModal({ open, car, onClose }: Props) {
       model: model.trim(),
       plateNumber: plateNumber.trim(),
       assignedDriverId: assignedDriverId || null,
+      assignedEventId: assignedEventId || null,
       assignmentStart: assignmentStart || null,
       assignmentEnd: assignmentEnd || null,
     };
@@ -145,6 +149,20 @@ export function CarFormModal({ open, car, onClose }: Props) {
                     {d.name}
                   </option>
                 ))}
+            </select>
+          </Field>
+          <Field label="Assigned event (optional)">
+            <select
+              value={assignedEventId}
+              onChange={(e) => setAssignedEventId(e.target.value)}
+              className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
+            >
+              <option value="">No event</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
+              ))}
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
