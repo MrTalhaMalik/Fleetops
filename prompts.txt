@@ -43,5 +43,6 @@ What i want you to do now is make this a mobile app as well.
 //Car name | Model | No. Plate | Assigned to (Driver name) | Start of assignment | End of Assignment | Event Name
 //This page will show the history of each car.
 
-prompt # 10
-Admins can access driver shift logs from the drivers page after clicking on the driver
+//prompt # 10
+//Admins can access driver shift logs from the drivers page after clicking on the driver
+//Admins can also view driver information when they click on the driver

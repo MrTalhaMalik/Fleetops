@@ -40,7 +40,7 @@ export default function LiveMapPage() {
   const onShift = drivers.filter((d) => d.status === "on-duty");
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex min-h-[calc(100vh-8rem)] flex-col lg:h-[calc(100vh-8rem)] lg:min-h-0">
       <PageHeader
         title="Live map"
         description={
@@ -60,8 +60,8 @@ export default function LiveMapPage() {
       ) : error ? (
         <ErrorState message="Could not load driver locations" onRetry={() => refetch()} />
       ) : (
-        <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[320px_1fr] overflow-hidden">
-          <Card className="flex flex-col overflow-hidden">
+        <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[320px_1fr] lg:overflow-hidden">
+          <Card className="order-2 flex max-h-[50vh] flex-col overflow-hidden lg:order-none lg:max-h-none">
             <div className="border-b border-border-soft p-4">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-soft" />
@@ -109,7 +109,7 @@ export default function LiveMapPage() {
             </div>
           </Card>
 
-          <Card className="relative overflow-hidden">
+          <Card className="relative order-1 h-[65vh] overflow-hidden lg:order-none lg:h-auto">
             <MapboxMap drivers={filteredDrivers} selected={selected} onSelect={setSelected} />
 
             {selected && (
