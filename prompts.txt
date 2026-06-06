@@ -30,18 +30,18 @@ What i want you to do now is make this a mobile app as well.
 //prompt #7
 //attach online database to it
 
-prompt #8
-Add a Car databse in this website for the admins.
-The layout should be a table like.
-Car name | Model | No. Plate | Assigned to (Driver name) | Start of assignment | End of Assignment |
-Also we can add or delete a car.
-This page will only show current status of cars
+//prompt #8
+//Add a Car databse in this website for the admins.
+//The layout should be a table like.
+//Car name | Model | No. Plate | Assigned to (Driver name) | Start of assignment | End of Assignment |
+//Also we can add or delete a car.
+//This page will only show current status of cars
 
-Prompt #9
-Create a car log page.
-This page should keep a log of all cars and whihc event they were assigned to and from what date to what date.
-Car name | Model | No. Plate | Assigned to (Driver name) | Start of assignment | End of Assignment | Event Name
-This page will show the history of each car.
+//Prompt #9
+//Create a car log page.
+//This page should keep a log of all cars and whihc event they were assigned to and from what date to what date.
+//Car name | Model | No. Plate | Assigned to (Driver name) | Start of assignment | End of Assignment | Event Name
+//This page will show the history of each car.
 
 prompt # 10
 Admins can access driver shift logs from the drivers page after clicking on the driver

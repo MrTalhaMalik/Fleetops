@@ -34,6 +34,7 @@ import type { Driver, DriverStatus } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { DriverFormModal } from "./driver-form-modal";
 import { AssignEventModal } from "./assign-event-modal";
+import { DriverDetailModal } from "./driver-detail-modal";
 
 const filters = [
   { key: "all", label: "All" },
@@ -71,6 +72,7 @@ export default function DriversPage() {
   const [assignDriver, setAssignDriver] = useState<Driver | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Driver | null>(null);
   const [docsDriver, setDocsDriver] = useState<Driver | null>(null);
+  const [detailDriver, setDetailDriver] = useState<Driver | null>(null);
 
   const pending = drivers.filter((d) => d.status === "pending");
 
@@ -233,13 +235,19 @@ export default function DriversPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((d, i) => (
+                {filtered.map((d, i) => {
+                  const clickable = d.status !== "pending";
+                  return (
                   <motion.tr
                     key={d.id}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, delay: i * 0.02 }}
-                    className="border-b border-border-soft last:border-b-0 transition-colors hover:bg-border-soft/60"
+                    onClick={clickable ? () => setDetailDriver(d) : undefined}
+                    className={cn(
+                      "border-b border-border-soft last:border-b-0 transition-colors hover:bg-border-soft/60",
+                      clickable && "cursor-pointer",
+                    )}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -267,7 +275,7 @@ export default function DriversPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         {d.status === "pending" ? (
                           <>
@@ -321,7 +329,8 @@ export default function DriversPage() {
                       </div>
                     </td>
                   </motion.tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -334,6 +343,12 @@ export default function DriversPage() {
         driver={assignDriver}
         onClose={() => setAssignDriver(null)}
       />
+      {detailDriver && (
+        <DriverDetailModal
+          driver={detailDriver}
+          onClose={() => setDetailDriver(null)}
+        />
+      )}
       {docsDriver && (
         <DriverDocsModal driver={docsDriver} onClose={() => setDocsDriver(null)} />
       )}

@@ -49,18 +49,14 @@ router.get("/me", async (req, res) => {
   res.json(withoutDocs(withStatus(driver)));
 });
 
-// Driver: every shift they've ever logged, grouped per event with totals.
-router.get("/me/shifts", requireRole("driver"), async (req, res) => {
-  const driver = await prisma.driver.findUnique({ where: { userId: req.user.sub } });
-  if (!driver) return res.status(404).json({ error: "Driver record not found" });
-
+// Group a driver's shifts per event with per-event + grand totals.
+async function loadShiftGroupsForDriver(driverId) {
   const shifts = await prisma.shift.findMany({
-    where: { driverId: driver.id },
+    where: { driverId },
     include: { event: true },
     orderBy: { startedAt: "desc" },
   });
 
-  // Group by event so the UI can render one card per event with all sessions inside.
   const groups = new Map();
   for (const shift of shifts) {
     const ev = shift.event;
@@ -92,7 +88,24 @@ router.get("/me/shifts", requireRole("driver"), async (req, res) => {
     group.totalMs += durationMs;
   }
 
-  res.json(Array.from(groups.values()));
+  return Array.from(groups.values());
+}
+
+// Driver: every shift they've ever logged, grouped per event with totals.
+router.get("/me/shifts", requireRole("driver"), async (req, res) => {
+  const driver = await prisma.driver.findUnique({ where: { userId: req.user.sub } });
+  if (!driver) return res.status(404).json({ error: "Driver record not found" });
+  res.json(await loadShiftGroupsForDriver(driver.id));
+});
+
+// Admin: same shape as /me/shifts but for any driver by id.
+router.get("/:id/shifts", requireRole("admin"), async (req, res) => {
+  const driver = await prisma.driver.findUnique({
+    where: { id: req.params.id },
+    select: { id: true },
+  });
+  if (!driver) return res.status(404).json({ error: "Driver not found" });
+  res.json(await loadShiftGroupsForDriver(driver.id));
 });
 
 router.get("/:id", async (req, res) => {

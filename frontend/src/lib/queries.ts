@@ -225,6 +225,14 @@ export function useMyShifts() {
   });
 }
 
+export function useDriverShifts(driverId: string | null | undefined) {
+  return useQuery<ShiftLogGroup[]>({
+    queryKey: ["shifts", "driver", driverId],
+    queryFn: () => api(`/drivers/${driverId}/shifts`),
+    enabled: Boolean(driverId),
+  });
+}
+
 export function useEventMessages(eventId: string | null | undefined) {
   return useQuery<EventMessage[]>({
     queryKey: ["events", eventId, "messages"],
