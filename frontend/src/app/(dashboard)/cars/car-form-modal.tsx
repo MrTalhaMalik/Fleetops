@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,32 @@ export function CarFormModal({ open, car, onClose }: Props) {
     setAssignmentEnd(car?.assignmentEnd ?? "");
     setErrors({});
   }, [open, car]);
+
+  const selectedEvent = useMemo(
+    () => events.find((ev) => ev.id === assignedEventId) ?? null,
+    [events, assignedEventId],
+  );
+
+  // Only drivers who accepted the selected event's invitation are valid car assignees.
+  const eligibleDrivers = useMemo(() => {
+    if (!selectedEvent) return [];
+    const acceptedIds = new Set(
+      selectedEvent.invitations
+        .filter((inv) => inv.status === "accepted")
+        .map((inv) => inv.driverId),
+    );
+    return drivers.filter((d) => d.approved && acceptedIds.has(d.id));
+  }, [drivers, selectedEvent]);
+
+  function handleEventChange(nextId: string) {
+    setAssignedEventId(nextId);
+    const ev = events.find((e) => e.id === nextId);
+    // Pull the event's date range so the log gets a sensible default; still editable below.
+    setAssignmentStart(ev?.startDate ?? "");
+    setAssignmentEnd(ev?.endDate ?? "");
+    // Drop the driver — accepted-driver list changes with the event.
+    setAssignedDriverId("");
+  }
 
   if (!open) return null;
 
@@ -135,26 +161,10 @@ export function CarFormModal({ open, car, onClose }: Props) {
               placeholder="QA-12345"
             />
           </Field>
-          <Field label="Assigned driver (optional)">
-            <select
-              value={assignedDriverId}
-              onChange={(e) => setAssignedDriverId(e.target.value)}
-              className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
-            >
-              <option value="">Unassigned</option>
-              {drivers
-                .filter((d) => d.approved)
-                .map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-            </select>
-          </Field>
           <Field label="Assigned event (optional)">
             <select
               value={assignedEventId}
-              onChange={(e) => setAssignedEventId(e.target.value)}
+              onChange={(e) => handleEventChange(e.target.value)}
               className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
             >
               <option value="">No event</option>
@@ -164,6 +174,26 @@ export function CarFormModal({ open, car, onClose }: Props) {
                 </option>
               ))}
             </select>
+          </Field>
+          <Field label="Assigned driver (optional)">
+            <select
+              value={assignedDriverId}
+              onChange={(e) => setAssignedDriverId(e.target.value)}
+              disabled={!selectedEvent}
+              className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15 disabled:cursor-not-allowed disabled:bg-border-soft/40 disabled:text-muted"
+            >
+              <option value="">Unassigned</option>
+              {eligibleDrivers.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {!selectedEvent ? (
+              <p className="mt-1 text-xs text-muted">Pick an event first to choose an accepted driver.</p>
+            ) : eligibleDrivers.length === 0 ? (
+              <p className="mt-1 text-xs text-muted">No drivers have accepted this event yet.</p>
+            ) : null}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Assignment start" error={errors.assignmentStart}>
