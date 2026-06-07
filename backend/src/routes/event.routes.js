@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma.js";
+import { deriveEventStatus, sweepCompletedEvents } from "../db/event-status.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -54,7 +55,9 @@ function shapeEvent(ev) {
     startDate: ev.startDate,
     endDate: ev.endDate,
     location: ev.location,
-    status: ev.status,
+    // Status is derived from today vs the date range, not the stored column.
+    // The DB column is kept around for legacy writes but ignored on read.
+    status: deriveEventStatus(ev.startDate, ev.endDate),
     driverLimit: ev.driverLimit,
     invitations,
     attendees: invitations.filter((i) => i.status === "accepted").length,
@@ -70,6 +73,7 @@ function formatDateRange(startDate, endDate) {
 }
 
 router.get("/", async (req, res) => {
+  await sweepCompletedEvents(prisma);
   if (req.user.role === "driver") {
     const driver = await prisma.driver.findUnique({ where: { userId: req.user.sub } });
     if (!driver) return res.json([]);

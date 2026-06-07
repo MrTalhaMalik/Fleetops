@@ -1,11 +1,16 @@
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
+import { sweepCompletedEvents } from "../db/event-status.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 router.use(requireAuth);
 
 router.get("/dashboard", requireRole("admin"), async (_req, res) => {
+  await sweepCompletedEvents(prisma);
+
+  // Date-driven status means "not completed" = endDate is today or later.
+  const today = new Date().toISOString().slice(0, 10);
   const [
     totalDrivers,
     pendingDrivers,
@@ -24,7 +29,7 @@ router.get("/dashboard", requireRole("admin"), async (_req, res) => {
         shiftEndedAt: null,
       },
     }),
-    prisma.event.count({ where: { status: { not: "completed" } } }),
+    prisma.event.count({ where: { endDate: { gte: today } } }),
     prisma.alert.count(),
   ]);
 

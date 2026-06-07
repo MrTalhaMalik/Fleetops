@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import {
   Calendar,
+  Car as CarIcon,
   CheckCircle2,
   ChevronRight,
   MapPin,
@@ -22,12 +23,14 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageLoading, ErrorState } from "@/components/ui/loading";
 import {
+  useCars,
   useDeleteEvent,
   useDrivers,
   useEvents,
   useUnassignDriver,
+  useUpdateCar,
 } from "@/lib/queries";
-import type { EventItem, EventStatus, Invitation } from "@/lib/types";
+import type { Car, EventItem, EventStatus, Invitation } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { EventFormModal } from "./event-form-modal";
 import { EventChat } from "./event-chat";
@@ -50,8 +53,10 @@ const statusTone: Record<EventStatus, "info" | "brand" | "muted"> = {
 export function AdminEvents() {
   const { data: events = [], isLoading, error, refetch } = useEvents();
   const { data: drivers = [] } = useDrivers();
+  const { data: cars = [] } = useCars();
   const deleteEvent = useDeleteEvent();
   const unassign = useUnassignDriver();
+  const updateCar = useUpdateCar();
 
   const driverById = useMemo(() => {
     const m = new Map(drivers.map((d) => [d.id, d]));
@@ -103,6 +108,36 @@ export function AdminEvents() {
         onSuccess: () => toast.success(`${driverName} unassigned`),
         onError: (err) =>
           toast.error(err instanceof Error ? err.message : "Could not unassign driver"),
+      },
+    );
+  }
+
+  function handleAssignCar(car: Car, ev: EventItem, driverId: string, driverName: string) {
+    updateCar.mutate(
+      {
+        id: car.id,
+        input: {
+          assignedDriverId: driverId,
+          assignedEventId: ev.id,
+          assignmentStart: ev.startDate,
+          assignmentEnd: ev.endDate,
+        },
+      },
+      {
+        onSuccess: () => toast.success(`${car.name} assigned to ${driverName}`),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Could not assign car"),
+      },
+    );
+  }
+
+  function handleUnassignCar(car: Car) {
+    updateCar.mutate(
+      { id: car.id, input: { assignedDriverId: null } },
+      {
+        onSuccess: () => toast.success(`${car.name} unassigned`),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Could not unassign car"),
       },
     );
   }
@@ -351,44 +386,106 @@ export function AdminEvents() {
                     {selected.invitations.map((inv) => {
                       const d = driverById.get(inv.driverId);
                       if (!d) return null;
+                      const assignedCar =
+                        inv.status === "accepted"
+                          ? cars.find(
+                              (c) =>
+                                c.assignedDriverId === d.id &&
+                                c.assignedEventId === selected.id,
+                            ) ?? null
+                          : null;
+                      const eventCarPool = cars.filter(
+                        (c) =>
+                          c.assignedEventId === selected.id && !c.assignedDriverId,
+                      );
                       return (
                         <div
                           key={inv.driverId}
-                          className="flex items-center justify-between rounded-xl border border-border-soft p-3"
+                          className="rounded-xl border border-border-soft p-3"
                         >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <Avatar name={d.name} color={d.avatarColor} size="sm" />
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{d.name}</p>
-                              <p className="truncate text-xs text-muted">{d.email}</p>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <Avatar name={d.name} color={d.avatarColor} size="sm" />
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{d.name}</p>
+                                <p className="truncate text-xs text-muted">{d.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                tone={
+                                  inv.status === "accepted"
+                                    ? "success"
+                                    : inv.status === "declined"
+                                      ? "danger"
+                                      : inv.status === "closed"
+                                        ? "muted"
+                                        : "info"
+                                }
+                                dot
+                              >
+                                {inv.status}
+                              </Badge>
+                              {inv.status === "accepted" && (
+                                <button
+                                  onClick={() => handleUnassign(selected.id, d.id, d.name)}
+                                  className="rounded-lg p-1.5 text-muted hover:bg-rose-50 hover:text-rose-600"
+                                  aria-label="Unassign driver"
+                                  title="Unassign driver"
+                                >
+                                  <X className="size-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              tone={
-                                inv.status === "accepted"
-                                  ? "success"
-                                  : inv.status === "declined"
-                                    ? "danger"
-                                    : inv.status === "closed"
-                                      ? "muted"
-                                      : "info"
-                              }
-                              dot
-                            >
-                              {inv.status}
-                            </Badge>
-                            {inv.status === "accepted" && (
-                              <button
-                                onClick={() => handleUnassign(selected.id, d.id, d.name)}
-                                className="rounded-lg p-1.5 text-muted hover:bg-rose-50 hover:text-rose-600"
-                                aria-label="Unassign driver"
-                                title="Unassign driver"
-                              >
-                                <X className="size-3.5" />
-                              </button>
-                            )}
-                          </div>
+                          {inv.status === "accepted" && (
+                            <div className="mt-2 flex items-center gap-2 border-t border-border-soft pt-2">
+                              <CarIcon className="size-3.5 shrink-0 text-muted" />
+                              {assignedCar ? (
+                                <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                  <span className="truncate text-xs">
+                                    <span className="font-medium text-foreground">
+                                      {assignedCar.name}
+                                    </span>{" "}
+                                    <span className="font-mono text-muted">
+                                      {assignedCar.plateNumber}
+                                    </span>
+                                  </span>
+                                  <button
+                                    onClick={() => handleUnassignCar(assignedCar)}
+                                    disabled={updateCar.isPending}
+                                    className="rounded-md px-2 py-0.5 text-[11px] font-medium text-muted hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                                  >
+                                    Unassign
+                                  </button>
+                                </div>
+                              ) : eventCarPool.length > 0 ? (
+                                <select
+                                  defaultValue=""
+                                  onChange={(e) => {
+                                    const carId = e.target.value;
+                                    if (!carId) return;
+                                    const car = eventCarPool.find((c) => c.id === carId);
+                                    if (car) handleAssignCar(car, selected, d.id, d.name);
+                                    e.target.value = "";
+                                  }}
+                                  disabled={updateCar.isPending}
+                                  className="h-7 min-w-0 flex-1 rounded-md border border-border bg-surface px-2 text-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
+                                >
+                                  <option value="">Assign a car…</option>
+                                  {eventCarPool.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.name} · {c.plateNumber}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-[11px] text-muted">
+                                  No cars added to this event. Add one from the Cars page.
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

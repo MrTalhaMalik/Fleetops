@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../db/prisma.js";
 import { withStatus, withoutDocs } from "../db/driver-status.js";
+import { sweepCompletedEvents } from "../db/event-status.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -31,6 +32,9 @@ const colors = [
 const pickColor = () => colors[Math.floor(Math.random() * colors.length)];
 
 router.get("/", async (_req, res) => {
+  // Releases any driver whose assigned event has already ended, so their
+  // derived status flips back to "available" on this same response.
+  await sweepCompletedEvents(prisma);
   const drivers = await prisma.driver.findMany({ orderBy: { createdAt: "asc" } });
   res.json(drivers.map((d) => withoutDocs(withStatus(d))));
 });
@@ -44,6 +48,7 @@ router.get("/pending", requireRole("admin"), async (_req, res) => {
 });
 
 router.get("/me", async (req, res) => {
+  await sweepCompletedEvents(prisma);
   const driver = await prisma.driver.findUnique({ where: { userId: req.user.sub } });
   if (!driver) return res.status(404).json({ error: "Driver record not found" });
   res.json(withoutDocs(withStatus(driver)));
