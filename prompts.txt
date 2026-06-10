@@ -46,3 +46,8 @@ What i want you to do now is make this a mobile app as well.
 //prompt # 10
 //Admins can access driver shift logs from the drivers page after clicking on the driver
 //Admins can also view driver information when they click on the driver
+
+//prompt # 11
+//i just found a bug in the website, for example if an event starts 3 days from now and
+//the driver has accepted invitation, he is able to start his shift before the event even starts.
+//that should not be possible and the shift can only be started at the day of the event. please fix this

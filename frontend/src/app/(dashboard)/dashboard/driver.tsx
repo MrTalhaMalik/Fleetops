@@ -92,6 +92,11 @@ export function DriverDashboard() {
     ? events.find((e) => e.id === me.assignedEventId) ?? null
     : null;
 
+  // Shifts can't be started before the event's first day. Wire dates are
+  // "YYYY-MM-DD" strings so lexicographic comparison is correct.
+  const today = new Date().toISOString().slice(0, 10);
+  const eventNotStarted = Boolean(currentEvent && today < currentEvent.startDate);
+
   async function handleStart(eventId: string) {
     try {
       const pos = await getCurrentPosition();
@@ -204,13 +209,15 @@ export function DriverDashboard() {
                   <Button
                     size="lg"
                     className="w-full"
-                    disabled={startMutation.isPending}
+                    disabled={startMutation.isPending || eventNotStarted}
                     onClick={() => handleStart(currentEvent.id)}
                   >
                     <Play className="size-5" /> Start shift
                   </Button>
                   <p className="mt-2 text-center text-xs text-muted">
-                    Location access is required while on shift.
+                    {eventNotStarted
+                      ? `Shifts open on ${currentEvent.startDate}.`
+                      : "Location access is required while on shift."}
                   </p>
                 </>
               )}

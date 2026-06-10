@@ -399,6 +399,19 @@ router.post("/:id/start", requireRole("driver"), async (req, res) => {
   if (driver.shiftStartedAt && !driver.shiftEndedAt) {
     return res.status(409).json({ error: "You're already on shift" });
   }
+  // Block shift starts before the event's first day. Wire dates are "YYYY-MM-DD"
+  // strings so lexicographic comparison is correct.
+  const ev = await prisma.event.findUnique({
+    where: { id: req.params.id },
+    select: { startDate: true },
+  });
+  if (!ev) return res.status(404).json({ error: "Event not found" });
+  const today = new Date().toISOString().slice(0, 10);
+  if (ev.startDate && today < ev.startDate) {
+    return res.status(409).json({
+      error: `This event hasn't started yet. You can start your shift on ${ev.startDate}.`,
+    });
+  }
   const parsed = startShiftSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
