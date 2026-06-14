@@ -6,6 +6,8 @@ import {
   Car as CarIcon,
   CheckCircle2,
   ChevronRight,
+  Download,
+  Loader2,
   MapPin,
   Pencil,
   Plus,
@@ -32,6 +34,7 @@ import {
 } from "@/lib/queries";
 import type { Car, EventItem, EventStatus, Invitation } from "@/lib/types";
 import { cn } from "@/lib/cn";
+import { exportEventToXlsx } from "@/lib/event-export";
 import { EventFormModal } from "./event-form-modal";
 import { EventChat } from "./event-chat";
 
@@ -69,6 +72,20 @@ export function AdminEvents() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<EventItem | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
+
+  async function handleExport(ev: EventItem) {
+    if (exportingId) return;
+    setExportingId(ev.id);
+    try {
+      await exportEventToXlsx(ev.id);
+      toast.success(`Exported "${ev.title}"`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not export event");
+    } finally {
+      setExportingId(null);
+    }
+  }
 
   const list = useMemo(() => {
     return events
@@ -225,6 +242,22 @@ export function AdminEvents() {
             >
               <Card className="group relative flex h-full flex-col p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
                 <div className="absolute right-4 top-4 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      handleExport(e);
+                    }}
+                    disabled={exportingId === e.id}
+                    className="rounded-lg bg-surface p-1.5 text-muted shadow-sm ring-1 ring-border hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+                    aria-label="Export event to Excel"
+                    title="Export to Excel"
+                  >
+                    {exportingId === e.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Download className="size-3.5" />
+                    )}
+                  </button>
                   <button
                     onClick={(ev) => {
                       ev.stopPropagation();
@@ -505,6 +538,22 @@ export function AdminEvents() {
             <div className="flex flex-wrap gap-2 border-t border-border-soft p-5">
               <Button variant="outline" className="flex-1" onClick={() => setSelected(null)}>
                 Close
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleExport(selected)}
+                disabled={exportingId === selected.id}
+              >
+                {exportingId === selected.id ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> Exporting…
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-4" /> Export
+                  </>
+                )}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => openEdit(selected)}>
                 <Pencil className="size-4" /> Edit

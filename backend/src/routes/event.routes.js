@@ -551,6 +551,87 @@ router.post("/:id/messages", async (req, res) => {
   res.status(201).json(msg);
 });
 
+// Admin: export-ready bundle for an event — every chat message, every car
+// assignment tied to this event (from the append-only log), and every shift
+// every accepted driver has logged for it. The frontend builds an .xlsx
+// from this payload so the export stays a single client-side action.
+router.get("/:id/export-data", requireRole("admin"), async (req, res) => {
+  const ev = await prisma.event.findUnique({
+    where: { id: req.params.id },
+    include: { invitations: true },
+  });
+  if (!ev) return res.status(404).json({ error: "Event not found" });
+
+  const acceptedDriverIds = ev.invitations
+    .filter((i) => i.status === "accepted")
+    .map((i) => i.driverId);
+
+  const [messages, carAssignments, shifts, drivers] = await Promise.all([
+    prisma.message.findMany({
+      where: { eventId: ev.id },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.carAssignment.findMany({
+      where: { eventId: ev.id },
+      include: {
+        car: { select: { name: true, model: true, plateNumber: true } },
+        driver: { select: { name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.shift.findMany({
+      where: { eventId: ev.id },
+      orderBy: { startedAt: "asc" },
+    }),
+    prisma.driver.findMany({
+      where: { id: { in: acceptedDriverIds } },
+      select: { id: true, name: true, email: true },
+    }),
+  ]);
+
+  const nameByDriverId = new Map(drivers.map((d) => [d.id, d.name]));
+
+  res.json({
+    event: {
+      id: ev.id,
+      title: ev.title,
+      description: ev.description,
+      startDate: ev.startDate,
+      endDate: ev.endDate,
+      location: ev.location,
+    },
+    messages: messages.map((m) => ({
+      createdAt: m.createdAt,
+      authorName: m.authorName,
+      authorRole: m.authorRole,
+      body: m.body,
+    })),
+    carAssignments: carAssignments.map((a) => ({
+      driverId: a.driverId,
+      driverName: a.driver?.name ?? null,
+      carName: a.car?.name ?? null,
+      carModel: a.car?.model ?? null,
+      carPlate: a.car?.plateNumber ?? null,
+      startDate: a.startDate,
+      endDate: a.endDate,
+    })),
+    shifts: shifts.map((s) => {
+      const startMs = s.startedAt ? new Date(s.startedAt).getTime() : null;
+      const endMs = s.endedAt ? new Date(s.endedAt).getTime() : null;
+      const durationMs =
+        startMs != null ? Math.max(0, (endMs ?? Date.now()) - startMs) : 0;
+      return {
+        driverId: s.driverId,
+        driverName: nameByDriverId.get(s.driverId) ?? null,
+        startedAt: s.startedAt,
+        endedAt: s.endedAt,
+        durationMs,
+        ongoing: !s.endedAt,
+      };
+    }),
+  });
+});
+
 // Admin: unassign a driver from their current event (e.g. they cancelled).
 router.post("/:id/unassign", requireRole("admin"), async (req, res) => {
   const { driverId } = req.body ?? {};
